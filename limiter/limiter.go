@@ -20,7 +20,8 @@ func New(generalExpirableOptions *ExpirableOptions) *Limiter {
 		SetOnLimitReached(nil).
 		SetIPLookups([]string{"RemoteAddr", "X-Forwarded-For", "X-Real-IP"}).
 		SetForwardedForIndexFromBehind(0).
-		SetHeaders(make(map[string][]string))
+		SetHeaders(make(map[string][]string)).
+		SetIgnoreURL(false)
 
 	if generalExpirableOptions != nil {
 		lmt.generalExpirableOptions = generalExpirableOptions
@@ -94,6 +95,9 @@ type Limiter struct {
 
 	// Map of limiters with TTL
 	tokenBuckets *gocache.Cache
+
+	// Ignore URL on the rate limiter keys
+	ignoreURL bool
 
 	tokenBucketExpirationTTL time.Duration
 	basicAuthExpirationTTL   time.Duration
@@ -265,6 +269,22 @@ func (l *Limiter) GetIPLookups() []string {
 	l.RLock()
 	defer l.RUnlock()
 	return l.ipLookups
+}
+
+// SetIgnoreURL is thread-safe way of setting whenever ignore the URL on rate limit keys
+func (l *Limiter) SetIgnoreURL(enabled bool) *Limiter {
+	l.Lock()
+	l.ignoreURL = enabled
+	l.Unlock()
+
+	return l
+}
+
+// SetIgnoreURL is thread-safe way of getting whenever ignore the URL on rate limit keys
+func (l *Limiter) GetIgnoreURL() bool {
+	l.RLock()
+	defer l.RUnlock()
+	return l.ignoreURL
 }
 
 // SetForwardedForIndexFromBehind is thread-safe way of setting which X-Forwarded-For index to choose.
